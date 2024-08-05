@@ -1,40 +1,42 @@
-use poise::{serenity_prelude::CreateAttachment, CreateReply};
+use std::borrow::Cow;
+use std::io::Bytes;
+
+use reqwest::Url;
 use serde::{Deserialize, Serialize};
 
-use crate::{Context, ContextOP, Error};
+use serenity::builder::CreateMessage;
+use serenity::framework::standard::macros::{
+    // check,
+    command,
+    group,
+    // help,
+    // hook
+};
+
+use serenity::framework::standard::{Args, CommandResult};
+use serenity::model::prelude::{AttachmentType, Message};
+use serenity::prelude::*;
+use serenity::utils::MessageBuilder;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct YeQuote {
     quote: String
 }
 
-#[poise::command(
-    prefix_command,
-    track_edits, 
-    slash_command,  
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel")]
-pub async fn ping(
-    ctx: Context<'_>
-) -> Result<(), Error> {
-    ctx.text("Pong").await?;
-    Ok(())
+#[group]
+#[commands(ping, kanye, screenshot)]
+pub struct Fun;
 
-    
+#[command]
+async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.reply(&ctx.http, "Pong!!").await?;
+    Ok(())
 }
 
 
-#[poise::command(
-    prefix_command,
-    track_edits, 
-    slash_command,
 
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel")]
-
-pub async fn kanye(
-    ctx: Context<'_>
-) -> Result<(), Error> {
+#[command]
+async fn kanye(ctx: &Context, msg: &Message) -> CommandResult {
 
     let client = reqwest::Client::new();
 
@@ -49,67 +51,41 @@ pub async fn kanye(
         _ => "Not now, try later".into()
     };
 
-    ctx.text(&q).await?;
+    msg.reply(&ctx.http, &q).await?;
 
     Ok(())
 
 }
 
-// Helps I guess
-#[poise::command(
-    prefix_command,
-    track_edits, 
-    
-    slash_command,  
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel"
-    
-)]
-pub async fn help(ctx: Context<'_>, command: Option<String>) -> Result<(), Error> {
-    let configuration = poise::builtins::PrettyHelpConfiguration {
-        ephemeral: false,
-        color: (73, 156, 160),
-        show_context_menu_commands: true,
-        include_description: true,
-        extra_text_at_bottom: "kids....",
-        ..Default::default()
-    };
-    poise::builtins::pretty_help(ctx, command.as_deref(), configuration).await?;
-    Ok(())
-}
+#[command]
+pub async fn screenshot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let mut url = args.single::<String>()?;
 
 
-// screenshots a webpage
-#[poise::command(
-    prefix_command,
-    track_edits, 
-    aliases("ss", "sc"),
-    slash_command,  
-    install_context = "Guild|User",
-    interaction_context = "Guild|BotDm|PrivateChannel"
-    
-)]
-pub async fn screenshot
-        (ctx: Context<'_>, 
-        #[description = "self-explanatory"] mut url: String
-) -> Result<(), Error> {
     if !(url.starts_with("http://") || url.starts_with("https://")) {
         url = format!("https://{url}");
     }
+;
 
-    let ss = format!("https://image.thum.io/get/width/1080/crop/760/{url}");
+    let chunk = reqwest::Client::new()
+            .get(format!("https://image.thum.io/get/width/1080/crop/760/{url}"))
+            .send()
+            .await?
+            .bytes()
+            .await?
+            .to_vec();
 
-    let pic = CreateAttachment::url(&ctx.http(), &ss).await;
-
-    let rep = match pic {
-        Ok(mut pic) => {
-            pic.filename = String::from("ss.png");
-            CreateReply::default().attachment(pic)
-        },
-        _ => CreateReply::default().content("Couldn't get the image")
-    };
-
-    ctx.send(rep).await?;
+    let b = Cow::from(chunk.as_slice());
+    
+    msg.channel_id.send_message(&ctx.http,
+         move |m| {
+            m.add_file(
+                AttachmentType::Bytes { 
+                    data: b,
+                    filename: String::from("ss.png") 
+                }
+            )
+         }).await?;
 
     Ok(())
 }

@@ -7,8 +7,9 @@ edition = "2021"
 
 [dependencies]
 dotenvy = "0.15.7"
-serenity = { git = "https://github.com/serenity-rs/serenity", branch = "current" }
-poise = { git = "https://github.com/fgardt/poise", branch = "feat/user_apps", features = ["unstable", "default"]}
+serenity = { git = "https://github.com/nshout/serenity", branch = "rebase" }
 tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread"] }
 reqwest = { version = "*", features = ["json", "blocking"] }
 serde = "1.0.204"
+markov = "1.1.0"
+rand = "0.8.5"
