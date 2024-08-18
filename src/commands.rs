@@ -1,10 +1,7 @@
 use std::borrow::Cow;
-use std::io::Bytes;
 
-use reqwest::Url;
 use serde::{Deserialize, Serialize};
 
-use serenity::builder::CreateMessage;
 use serenity::framework::standard::macros::{
     // check,
     command,
@@ -16,7 +13,6 @@ use serenity::framework::standard::macros::{
 use serenity::framework::standard::{Args, CommandResult};
 use serenity::model::prelude::{AttachmentType, Message};
 use serenity::prelude::*;
-use serenity::utils::MessageBuilder;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct YeQuote {

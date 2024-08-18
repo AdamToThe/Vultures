@@ -1,10 +1,10 @@
 #![allow(deprecated)] 
-use std::{env,  fs::File, io::{BufRead, BufReader}, sync::Arc};
+use std::{env, fs::File, io::{BufRead, BufReader}, sync::Arc};
 use::dotenvy::dotenv;
 
 use markov::Chain;
 use serenity::{
-    async_trait, client::ClientBuilder, framework::StandardFramework, http::CacheHttp, model::prelude::{
+    async_trait, client::ClientBuilder, framework::StandardFramework, model::prelude::{
         Message,
         Ready
     }, prelude::*
@@ -27,12 +27,17 @@ impl TypeMapKey for Shared {
 
 #[async_trait]
 impl EventHandler for Handler {
+
     async fn ready(&self, _: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
     }
-    async fn message(&self, ctx: Context, msg: Message) {
+
+
+    async fn message(&self, ctx: Context, msg: Message) -> () {
         let men = msg.mentions_me(&ctx.http).await;
         let data = ctx.data.read().await;
+
+        let me = ctx.cache.clone().current_user();
 
         let random = {
             let mut rng = rand::thread_rng();
@@ -40,6 +45,10 @@ impl EventHandler for Handler {
         };
 
         println!("{}", random);
+        
+        if msg.author.id.0 == me.id.0 {
+            ()
+        }
 
         match men {
             Ok(b) => {
@@ -52,13 +61,15 @@ impl EventHandler for Handler {
                             .markov
                             .generate_str()
                     };
-
+                    
                     msg.reply(&ctx.http, &repl).await.expect("shit, cant reply with generated text o well");
 
                 }
             },
             _ => {}
         };
+
+        ()
 
     }
 }
