@@ -1,8 +1,8 @@
 #![allow(deprecated)]
-use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 
+use serenity::all::{CreateAllowedMentions, CreateAttachment, CreateMessage};
 use serenity::framework::standard::macros::{
     // check,
     command,
@@ -12,7 +12,7 @@ use serenity::framework::standard::macros::{
 };
 
 use serenity::framework::standard::{Args, CommandResult};
-use serenity::model::prelude::{AttachmentType, Message};
+use serenity::model::prelude::Message;
 use serenity::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -64,25 +64,25 @@ pub async fn screenshot(ctx: &Context, msg: &Message, mut args: Args) -> Command
     }
 ;
 
-    let chunk = reqwest::Client::new()
-            .get(format!("https://image.thum.io/get/width/1080/crop/760/{url}"))
-            .send()
-            .await?
-            .bytes()
-            .await?
-            .to_vec();
-
-    let b = Cow::from(chunk.as_slice());
     
-    msg.channel_id.send_message(&ctx.http,
-         move |m| {
-            m.add_file(
-                AttachmentType::Bytes { 
-                    data: b,
-                    filename: String::from("ss.png") 
-                }
-            )
-         }).await?;
+    
+    let ss = format!("https://image.thum.io/get/width/1080/crop/760/maxAge/1/png/{url}");
+
+    let pic = CreateAttachment::url(&ctx.http, &ss).await;
+
+    let rep = match pic {
+        Ok(mut pic) => {
+            pic.filename = String::from("ss.png");
+            CreateMessage::new().add_file(pic)
+        },
+        _ => CreateMessage::new().content("Couldn't get the image")
+    };
+
+    msg.channel_id.send_message(&ctx.http, 
+        rep
+        .reference_message(msg)
+        .allowed_mentions(CreateAllowedMentions::new().replied_user(false))
+    ).await?;
 
     Ok(())
 }
