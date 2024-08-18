@@ -40,6 +40,36 @@ impl EventHandler for Handler {
 
         if !(msg.author.id.get().eq(&YS_USER_ID)) {
 
+            
+
+            // racist ew, u replace the n_word urself
+            if msg.content.to_lowercase().contains("n_word") || msg.content.to_lowercase().contains("n_word2") {
+                let pic = CreateAttachment::url(&ctx.http, "https://compote.slate.com/images/fb69a16d-7f35-4103-98c1-62d466196b9a.jpg?crop=590%2C375%2Cx0%2Cy0&width=840").await;
+
+                if let Ok(mut p) = pic {
+                    p.filename = String::from("mike.png");
+                    let rep = CreateMessage::new().add_file(p);
+                    
+                    let _ = msg.channel_id.send_message(&ctx.http, 
+                        rep
+                        .reference_message(&msg)
+                        .allowed_mentions(CreateAllowedMentions::new().replied_user(false))
+                    ).await;
+                };
+
+                ()
+            }
+
+            if msg.content.to_lowercase().contains("https://github.com/") {
+                let _ = msg.channel_id.send_message(&ctx.http, 
+                        CreateMessage::new()
+                        .content("https://tenor.com/view/steamhappy-gif-25380602")
+                        .reference_message(&msg)
+                        .allowed_mentions(CreateAllowedMentions::new().replied_user(false))
+                    ).await;
+                ()
+            }
+
             match men {
                 Ok(b) => {
                     let random = {
@@ -61,30 +91,12 @@ impl EventHandler for Handler {
                         let reply = shared.markov.generate_str();
 
                         msg.reply(&ctx.http, &reply).await.expect("couldnt autorespond. how sad");
-                        ()
+                        
                     }
                 },
 
                 _ => {}
             };
-
-            // racist ew, u replace the n_word urself
-            if msg.content.to_lowercase().contains("n_word") || msg.content.to_lowercase().contains("n_word2")  {
-                let pic = CreateAttachment::url(&ctx.http, "https://compote.slate.com/images/fb69a16d-7f35-4103-98c1-62d466196b9a.jpg?crop=590%2C375%2Cx0%2Cy0&width=840").await;
-
-                if let Ok(mut p) = pic {
-                    p.filename = String::from("mike.png");
-                    let rep = CreateMessage::new().add_file(p);
-                    
-                    let _ = msg.channel_id.send_message(&ctx.http, 
-                        rep
-                        .reference_message(&msg)
-                        .allowed_mentions(CreateAllowedMentions::new().replied_user(false))
-                    ).await;
-                };
-
-                
-            }
         }
 
         ()
