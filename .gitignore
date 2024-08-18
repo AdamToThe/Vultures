@@ -11,6 +11,7 @@ Cargo.lock
 
 .env
 msgs.txt
+src/main_dead.rs
 
 # Added by cargo
 

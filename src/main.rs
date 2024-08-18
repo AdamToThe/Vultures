@@ -2,18 +2,21 @@
 use std::{env, fs::File, io::{BufRead, BufReader}, sync::Arc};
 use::dotenvy::dotenv;
 
+
 use markov::Chain;
 use serenity::{
-    async_trait, client::ClientBuilder, framework::StandardFramework, model::prelude::{
+    async_trait,  model::prelude::{
         Message,
         Ready
     }, prelude::*
 };
 
+
+
 use rand::prelude::*;
 
-mod commands;
-
+/* currentuser user id is broken, we gonna have to stick to this */
+const YS_USER_ID: u64 = 1258492646138314883;
 
 struct Handler;
 
@@ -22,7 +25,7 @@ struct Shared {
 }
 
 impl TypeMapKey for Shared {
-    type Value = Arc<Mutex<Shared>>;
+    type Value = Arc<Shared>;
 }
 
 #[async_trait]
@@ -35,74 +38,54 @@ impl EventHandler for Handler {
 
     async fn message(&self, ctx: Context, msg: Message) -> () {
         let men = msg.mentions_me(&ctx.http).await;
-        let data = ctx.data.read().await;
-
-        let me = ctx.cache.clone().current_user();
-
-        let random = {
-            let mut rng = rand::thread_rng();
-            rng.gen::<f64>()
-        };
-
-        println!("{}", random);
+        println!("{}", msg.author.id.get());
         
-        if msg.author.id.0 == me.id.0 {
-            ()
-        }
 
-        match men {
-            Ok(b) => {
-                if b || random > 0.0910 {
-                    let repl = {
-                        data.get::<Shared>()
-                            .expect("couldnt get the shared")
-                            .lock()
-                            .await
-                            .markov
-                            .generate_str()
+        if !(msg.author.id.get().eq(&YS_USER_ID)) {
+            match men {
+                Ok(b) => {
+                    let random = {
+                        let mut rng = rand::thread_rng();
+                        rng.gen::<f64>()
                     };
-                    
-                    msg.reply(&ctx.http, &repl).await.expect("shit, cant reply with generated text o well");
 
-                }
-            },
-            _ => {}
-        };
+                    println!("{}", random);
+
+                    if b ||  random > 0.910 {
+                        let shared = {
+                            let data = ctx.data.read().await;
+
+                            data.get::<Shared>()
+                                .expect("No shared struct")
+                                .clone()
+                        };
+
+                        let reply = shared.markov.generate_str();
+
+                        msg.reply(&ctx.http, &reply).await.expect("couldnt autorespond. how sad");
+                    }
+                },
+
+                _ => {}
+            }
+        }
 
         ()
 
     }
 }
+
+
 #[tokio::main]
-async fn main() -> Result<(), serenity::Error> {
+async fn main() {
     dotenv().expect("No .env");
 
-    let token = env::var("T").expect("No token");
-    
-    println!("Starting... ");
+    let token = env::var("T").expect("token");
 
-    let intents = GatewayIntents::all();
-
-
-    
-
-    let framework = StandardFramework::new()
-            .configure(|c| c
-                .with_whitespace(true)
-                
-                .prefix(".")
-                
-                .delimiters(vec![", ", ","])
-            )
-            .group(&commands::FUN_GROUP);
-               
-
-    
-    
-    let mut client = ClientBuilder::new(&token, intents)
-        .framework(framework)
+    let mut client = Client::builder(token, GatewayIntents::all())
         .event_handler(Handler)
-        .await?;
+        .await
+        .expect("Error creating client");
 
     let mut chain: Chain<String> = Chain::new();
 
@@ -118,17 +101,20 @@ async fn main() -> Result<(), serenity::Error> {
         }
     }
 
-    let shared = Shared {
-        markov: chain
-    };
+
+    
 
     {
         
         let mut data = client.data.write().await;
-        data.insert::<Shared>(Arc::new(Mutex::new(shared)));
+        data.insert::<Shared>(Arc::new(Shared {
+            markov: chain
+        }));
+    }
+    
+    if let Err(why) = client.start().await {
+        println!("An error occurred while running the client: {:?}", why);
     }
 
 
-    client.start().await
-    
 }
